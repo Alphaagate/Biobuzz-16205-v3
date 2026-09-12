@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.pedro;
 
+import com.pedropathing.ivy.Scheduler;
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.pedropathing.ivy.groups.Groups.parallel;
@@ -12,6 +13,8 @@ import com.pedropathing.paths.Path;
 import static com.pedropathing.api.Paths.line;
 import static com.pedropathing.api.Paths.curve;
 import static com.pedropathing.api.Paths.path;
+import static com.pedropathing.api.Paths.*;
+import com.pedropathing.paths.Path;
 
 import com.pedropathing.math.Pose;
 import com.pedropathing.api.PoseFactory;
@@ -28,6 +31,9 @@ import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.pedropathing.follower.Follower;
+
+import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 public class DriveTest extends OpMode {
 
@@ -37,7 +43,8 @@ public class DriveTest extends OpMode {
     private DcMotorEx outtake, outtake2;
 
     private final PoseFactory p = PoseFactory.degrees();
-
+//    private final PoseFactory p = PoseFactory.degrees().mirrorX(70.75);
+//TODO: red and blue side switch, test which one is for red side and determine if you want to use control pad or make a separate opmode
     private final Pose startPose = p.of(22.55, 116.45, 180);
 
     protected Pose shootingPose = p.of(53.423, 74.143, 0);
@@ -87,7 +94,10 @@ public class DriveTest extends OpMode {
     protected Path shootCorner;
     protected Path park;
     protected Path shootCornerClose;
-
+//    private Path park() {
+//        return line(startPose, park).linear(startPose, park);
+//    }
+    //TODO: see if this works
     protected void createAutoCommands() {
         double shootTime = 150;
 
@@ -298,20 +308,21 @@ public class DriveTest extends OpMode {
         outtake.setDirection(DcMotorSimple.Direction.REVERSE);
         outtake2 = hardwareMap.get(DcMotorEx.class, "o2");
         outtake2.setDirection(DcMotorSimple.Direction.FORWARD);
-        follower = org.firstinspires.ftc.teamcode.pedro.Constants.create(hardwareMap);
+        Scheduler.reset();
+        follower = Constants.create(hardwareMap);
+        follower.setPose(startPose);
         Limelight3A limelight =
                 hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100);
         limelight.start();
         limelight.pipelineSwitch(0);
-        follower.setPose(startPose);
-        Scheduler.reset();
         generatePaths();
         telemetry.addLine("Initialized - Ready!");
         telemetry.update();
     }
 
     public void start() {
+//        schedule(follow(follower, park()));   may need but i think is already replaced by create auto commands
         createAutoCommands();
     }
 
