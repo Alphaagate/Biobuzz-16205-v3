@@ -43,7 +43,7 @@ public class DriveTest extends OpMode {
     private DcMotorEx outtake, outtake2;
 
     private final PoseFactory p = PoseFactory.degrees();
-//    private final PoseFactory p = PoseFactory.degrees().mirrorX(70.75);
+    //    private final PoseFactory p = PoseFactory.degrees().mirrorX(70.75);
 //TODO: red and blue side switch, test which one is for red side and determine if you want to use control pad or make a separate opmode
     private final Pose startPose = p.of(22.55, 116.45, 180);
 
@@ -75,8 +75,10 @@ public class DriveTest extends OpMode {
 
     protected Pose closeParkPose = p.of(56.990, 102.860, 180);
     private Follower follower;
+    private Limelight3A limelight;
 
     public double vel;
+
     protected Path shootPreloads;
     protected Path pickupMiddle;
     protected Path shootMiddle;
@@ -94,9 +96,11 @@ public class DriveTest extends OpMode {
     protected Path shootCorner;
     protected Path park;
     protected Path shootCornerClose;
+
 //    private Path park() {
 //        return line(startPose, park).linear(startPose, park);
 //    }
+
     //TODO: see if this works
     protected void createAutoCommands() {
         double shootTime = 150;
@@ -170,22 +174,24 @@ public class DriveTest extends OpMode {
 
     protected Command gateCycle(double shootDelayMs, double gateWaitMs) {
         gateCycleNum++;
+
         return sequential(
                 parallel(
-                        sequential(waitMs(shootDelayMs),
+                        sequential(
+                                waitMs(shootDelayMs),
                                 follow(follower, pickupGates[gateCycleNum])
                         )
                 ),
                 race(
                         waitMs(gateWaitMs)
-//                        waitUntil(() -> robot.beamBroken()) //leave gate early if we have all balls
+//                        waitUntil(() -> robot.beamBroken())
                 ),
                 parallel(
                         sequential(
                                 waitMs(200)
 //                                conditional(
 //                                        () -> robot.beamBroken(),
-//                                        instant(() -> {}), // do nothing
+//                                        instant(() -> {}),
 //                                        sequential(
 //                                                waitMs(50)
 //                                        )
@@ -199,6 +205,7 @@ public class DriveTest extends OpMode {
         );
     }
 
+
 //    protected Command gateCycleAndPark(double shootDelayMs, double gateWaitMs) {
 //        gateCycleNum++;
 //        return sequential(
@@ -207,7 +214,6 @@ public class DriveTest extends OpMode {
 //                waitMs(gateWaitMs), parallel(follow(follower, shootGateAndPark)
 //                        sequential(waitMs(1000), robot.setIntakePower(0))));
 //    }
-
 
 
 //    public static Command turnTo(Follower follower, double radians) {
@@ -226,6 +232,7 @@ public class DriveTest extends OpMode {
 //    protected Command startFlywheel() {
 //        return instant(() -> robot.activateShooter());
 //    }
+
 
     private void generatePaths() {
 
@@ -302,50 +309,103 @@ public class DriveTest extends OpMode {
                 .constant(cornerBackupPose);
     }
 
+
     @Override
     public void init() {
+
         outtake = hardwareMap.get(DcMotorEx.class, "o1");
         outtake.setDirection(DcMotorSimple.Direction.REVERSE);
+
         outtake2 = hardwareMap.get(DcMotorEx.class, "o2");
         outtake2.setDirection(DcMotorSimple.Direction.FORWARD);
+
         Scheduler.reset();
+
         follower = Constants.create(hardwareMap);
         follower.setPose(startPose);
-        Limelight3A limelight =
-                hardwareMap.get(Limelight3A.class, "limelight");
+
+        limelight = hardwareMap.get(
+                Limelight3A.class,
+                "limelight"
+        );
+
         limelight.setPollRateHz(100);
-        limelight.start();
+
+        // Pollen pipeline
         limelight.pipelineSwitch(0);
+
+        limelight.start();
+
         generatePaths();
+
         telemetry.addLine("Initialized - Ready!");
         telemetry.update();
     }
 
+
     public void start() {
-//        schedule(follow(follower, park()));   may need but i think is already replaced by create auto commands
+//        schedule(follow(follower, park()));
+//        may need but i think is already replaced by create auto commands
+
         createAutoCommands();
     }
 
+
     @Override
     public void loop() {
+
         follower.update();
+
         Scheduler.execute();
 
         double velocity = outtake.getVelocity();
         double error = vel - velocity;
+
         double feedback = error * 0.005;
         double feedforward = 0.00036 * vel + 0.08;
 
         outtake.setPower(feedback + feedforward);
         outtake2.setPower(feedback + feedforward);
 
-        telemetry.addData("Follower Busy", follower.isBusy());
-        telemetry.addData("X", follower.pose().x());
-        telemetry.addData("Y", follower.pose().y());
+        LLResult result = limelight.getLatestResult();
+
+        telemetry.addData(
+                "Follower Busy",
+                follower.isBusy()
+        );
+
+        telemetry.addData(
+                "X",
+                follower.pose().x()
+        );
+
+        telemetry.addData(
+                "Y",
+                follower.pose().y()
+        );
+
         telemetry.addData(
                 "Heading (deg)",
                 Math.toDegrees(follower.pose().heading())
         );
+
+        // Only added to let you verify that the Limelight is actually returning data.
+        if (result != null && result.isValid()) {
+            telemetry.addData(
+                    "Limelight",
+                    "Valid"
+            );
+
+            telemetry.addData(
+                    "Pollen blobs",
+                    result.getColorResults().size()
+            );
+        } else {
+            telemetry.addData(
+                    "Limelight",
+                    "No valid result"
+            );
+        }
 
         telemetry.update();
     }
