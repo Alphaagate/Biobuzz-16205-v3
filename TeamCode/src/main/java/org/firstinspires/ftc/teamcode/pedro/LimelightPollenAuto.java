@@ -27,8 +27,7 @@ public class LimelightPollenAuto extends OpMode {
 
     private final PoseFactory p = PoseFactory.degrees();
 
-    private final Pose startPose =
-            p.of(22.55, 116.45, 180);
+    private final Pose startPose = p.of(22.55, 116.45, 180);
 
     private boolean driving = false;
 
@@ -38,32 +37,20 @@ public class LimelightPollenAuto extends OpMode {
         follower = Constants.create(hardwareMap);
         follower.setPose(startPose);
 
-        limelight =
-                hardwareMap.get(
-                        Limelight3A.class,
-                        "limelight"
-                );
-
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100);
 
         // ONLY ONE pipeline should be active at a time.
         // 0 = your yellow Pollen pipeline.
-        // Do NOT switch to 1 and 2 here.
         limelight.pipelineSwitch(0);
-
         limelight.start();
 
-        telemetry.addLine(
-                "Limelight + Pedro ready"
-        );
-
+        telemetry.addLine("Limelight + Pedro ready");
         telemetry.update();
     }
 
-
     @Override
     public void start() {
-
         visionCycles = 0;
         driving = false;
 
@@ -71,48 +58,35 @@ public class LimelightPollenAuto extends OpMode {
         scanAndDrive();
     }
 
-
     private void scanAndDrive() {
-
         // Stop after the allowed number of movement decisions.
         if (visionCycles >= MAX_VISION_CYCLES) {
             return;
         }
 
-        LLResult result =
-                limelight.getLatestResult();
+        LLResult result = limelight.getLatestResult();
 
         if (result == null || !result.isValid()) {
-            telemetry.addLine(
-                    "No valid Limelight result"
-            );
+            telemetry.addLine("No valid Limelight result");
             return;
         }
 
-        List<ColorResult> blobs =
-                result.getColorResults();
+        List<ColorResult> blobs = result.getColorResults();
 
         if (blobs.isEmpty()) {
-            telemetry.addLine(
-                    "No pollen detected"
-            );
+            telemetry.addLine("No pollen detected");
             return;
         }
 
         /*
-         * Current behavior:
-         * choose the largest visible pollen clump.
-         *
-         * If you want nearest individual ball instead,
-         * change this line to:
-         *
-         * ColorResult best = findLargestBlob(blobs);
+         * NEW BEHAVIOR:
+         * Because we enabled "Smart Target Grouping" and set "Sort Mode" to Largest
+         * in the Limelight web interface, the Limelight camera natively handles clumps.
+         * Index 0 is guaranteed to be our best target (single ball or clump).
          */
-        ColorResult best =
-                findLargestClump(blobs);
+        ColorResult best = blobs.get(0);
 
-        Pose current =
-                follower.pose();
+        Pose current = follower.pose();
 
         /*
          * Limelight TX:
@@ -120,269 +94,94 @@ public class LimelightPollenAuto extends OpMode {
          *
          * We convert TX into radians and use the robot's
          * current Pedro heading to calculate the field heading.
-         *
-         * This assumes the Limelight camera is facing forward
-         * with approximately zero yaw offset.
          */
-        double tx =
-                Math.toRadians(
-                        best.getTargetXDegrees()
-                );
-
-        double targetHeading =
-                current.heading() - tx;
-
+        double tx = Math.toRadians(best.getTargetXDegrees());
+        double targetHeading = current.heading() - tx;
 
         /*
-         * For the first test, only drive 12 inches
-         * toward the target.
-         *
+         * For the first test, only drive 12 inches toward the target.
          * Then we scan again.
          */
         double driveDistance = 12.0;
 
+        double targetX = current.x() + driveDistance * Math.cos(targetHeading);
+        double targetY = current.y() + driveDistance * Math.sin(targetHeading);
 
-        double targetX =
-                current.x()
-                        + driveDistance
-                        * Math.cos(targetHeading);
+        Pose target = p.of(
+                targetX,
+                targetY,
+                Math.toDegrees(targetHeading)
+        );
 
-        double targetY =
-                current.y()
-                        + driveDistance
-                        * Math.sin(targetHeading);
-
-
-        Pose target =
-                p.of(
-                        targetX,
-                        targetY,
-                        Math.toDegrees(targetHeading)
-                );
-
-
-        Path visionPath =
-                line(current, target)
-                        .constant(target);
-
+        Path visionPath = line(current, target).constant(target);
 
         follower.follow(visionPath);
-
         driving = true;
 
-        // This counts actual vision-driven movements,
-        // not loop iterations.
+        // This counts actual vision-driven movements, not loop iterations.
         visionCycles++;
     }
 
-
-    private ColorResult findLargestClump(
-            List<ColorResult> blobs
-    ) {
-
-        ColorResult bestBlob = null;
-        double bestScore = 0;
-
-
-        for (ColorResult center : blobs) {
-
-            double score = 0;
-
-
-            for (ColorResult other : blobs) {
-
-                double dx =
-                        Math.abs(
-                                center.getTargetXDegrees()
-                                        - other.getTargetXDegrees()
-                        );
-
-                double dy =
-                        Math.abs(
-                                center.getTargetYDegrees()
-                                        - other.getTargetYDegrees()
-                        );
-
-
-                /*
-                 * Treat blobs that are close together in
-                 * the camera view as belonging to one clump.
-                 */
-                if (dx < 8 && dy < 8) {
-                    score +=
-                            other.getTargetArea();
-                }
-            }
-
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestBlob = center;
-            }
-        }
-
-
-        return bestBlob;
-    }
-
-
-    private ColorResult findLargestBlob(
-            List<ColorResult> blobs
-    ) {
-
-        ColorResult best =
-                blobs.get(0);
-
-
-        for (ColorResult blob : blobs) {
-
-            if (blob.getTargetArea()
-                    > best.getTargetArea()) {
-
-                best = blob;
-            }
-        }
-
-
-        return best;
-    }
-
-
     @Override
     public void loop() {
-
         /*
          * Always update Pedro first.
          */
         follower.update();
-
 
         /*
          * If we finished the previous 12-inch path,
          * allow another vision scan.
          */
         if (driving && !follower.isBusy()) {
-
             driving = false;
-
             scanAndDrive();
         }
-
 
         /*
          * If the first scan did not get a result,
          * try again on the next loop.
          */
-        if (!driving &&
-                visionCycles < MAX_VISION_CYCLES) {
-
+        if (!driving && visionCycles < MAX_VISION_CYCLES) {
             scanAndDrive();
         }
-
 
         /*
          * Telemetry
          */
-        LLResult result =
-                limelight.getLatestResult();
-
+        LLResult result = limelight.getLatestResult();
 
         if (result != null && result.isValid()) {
+            List<ColorResult> blobs = result.getColorResults();
 
-            List<ColorResult> blobs =
-                    result.getColorResults();
-
-
-            telemetry.addData(
-                    "Pollen blobs",
-                    blobs.size()
-            );
-
+            telemetry.addData("Pollen blobs/groups seen", blobs.size());
 
             if (!blobs.isEmpty()) {
 
-                ColorResult best =
-                        findLargestClump(blobs);
+                // Grab the pre-sorted best result from Limelight
+                ColorResult best = blobs.get(0);
 
-
-                telemetry.addData(
-                        "Best TX",
-                        "%.2f",
-                        best.getTargetXDegrees()
-                );
-
-
-                telemetry.addData(
-                        "Best TY",
-                        "%.2f",
-                        best.getTargetYDegrees()
-                );
-
-
-                telemetry.addData(
-                        "Best Area",
-                        "%.2f%%",
-                        best.getTargetArea()
-                );
+                telemetry.addData("Best TX", "%.2f", best.getTargetXDegrees());
+                telemetry.addData("Best TY", "%.2f", best.getTargetYDegrees());
+                telemetry.addData("Best Area", "%.2f%%", best.getTargetArea());
             }
 
         } else {
-
-            telemetry.addData(
-                    "Limelight",
-                    "No valid result"
-            );
+            telemetry.addData("Limelight", "No valid result");
         }
 
-
-        telemetry.addData(
-                "Vision cycles",
-                visionCycles + " / " + MAX_VISION_CYCLES
-        );
-
-
-        telemetry.addData(
-                "Driving",
-                driving
-        );
-
-
-        telemetry.addData(
-                "Robot X",
-                "%.2f",
-                follower.pose().x()
-        );
-
-
-        telemetry.addData(
-                "Robot Y",
-                "%.2f",
-                follower.pose().y()
-        );
-
-
-        telemetry.addData(
-                "Heading",
-                "%.1f",
-                Math.toDegrees(
-                        follower.pose().heading()
-                )
-        );
-
-
-        telemetry.addData(
-                "Pedro Busy",
-                follower.isBusy()
-        );
-
+        telemetry.addData("Vision cycles", visionCycles + " / " + MAX_VISION_CYCLES);
+        telemetry.addData("Driving", driving);
+        telemetry.addData("Robot X", "%.2f", follower.pose().x());
+        telemetry.addData("Robot Y", "%.2f", follower.pose().y());
+        telemetry.addData("Heading", "%.1f", Math.toDegrees(follower.pose().heading()));
+        telemetry.addData("Pedro Busy", follower.isBusy());
 
         telemetry.update();
     }
 
-
     @Override
     public void stop() {
-
         if (limelight != null) {
             limelight.stop();
         }
