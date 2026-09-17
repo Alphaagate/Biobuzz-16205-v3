@@ -10,26 +10,26 @@ buildscript {
     dependencies {
         classpath "dev.frozenmilk:Load:0.3.1"
     }
+}
 
-    apply plugin: 'com.android.application'
-    apply plugin: 'dev.frozenmilk.sinister.sloth.load'
+apply plugin: 'com.android.application'
+apply plugin: 'dev.frozenmilk.sinister.sloth.load'
 
-    apply from: '../build.common.gradle'
-    apply from: '../build.dependencies.gradle'
+apply from: '../build.common.gradle'
+apply from: '../build.dependencies.gradle'
 
-    android {
-        namespace = 'org.firstinspires.ftc.teamcode'
+android {
+    namespace = 'org.firstinspires.ftc.teamcode'
 
-        packagingOptions {
-            jniLibs.useLegacyPackaging true
-        }
+    packagingOptions {
+        jniLibs.useLegacyPackaging true
     }
+}
 
-    dependencies {
-        implementation project(':FtcRobotController')
+dependencies {
+    implementation project(':FtcRobotController')
 
-        implementation "dev.frozenmilk.sinister:Sloth:0.3.1"
+    implementation "dev.frozenmilk.sinister:Sloth:0.3.1"
 
-        implementation "com.bylazar.sloth:fullpanels:0.3.1+1.0.13"
-    }
+//    implementation "com.bylazar.sloth:fullpanels:0.3.1+1.0.13"
 }
