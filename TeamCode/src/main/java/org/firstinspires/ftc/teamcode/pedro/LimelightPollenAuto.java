@@ -50,7 +50,7 @@ public class LimelightPollenAuto extends OpMode {
         limelight.setPollRateHz(100);
 
         // ONLY ONE pipeline should be active at a time.
-        // 0 = your yellow Pollen pipeline.
+        // 5 = your yellow Pollen pipeline.
         limelight.pipelineSwitch(5);
         limelight.start();
 

@@ -19,7 +19,7 @@ public class Limelight extends LinearOpMode {
 
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100);
-        limelight.pipelineSwitch(5); // pipeline 0 = pollen pipeline, per your other files
+        limelight.pipelineSwitch(5); // pipeline 5 = pollen pipeline, per your other files
         limelight.start();
         waitForStart();
 

@@ -49,26 +49,26 @@ public class LimelightPollenAuto_NoPedro extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        // ---- Hardware init (mirrors Constants.drivetrainConfig) ----
-        frontLeft  = hardwareMap.get(DcMotor.class, "fL");
-        frontRight = hardwareMap.get(DcMotor.class, "fR");
-        backLeft   = hardwareMap.get(DcMotor.class, "bL");
-        backRight  = hardwareMap.get(DcMotor.class, "bR");
+//        // ---- Hardware init (mirrors Constants.drivetrainConfig) ----
+//        frontLeft  = hardwareMap.get(DcMotor.class, "fL");
+//        frontRight = hardwareMap.get(DcMotor.class, "fR");
+//        backLeft   = hardwareMap.get(DcMotor.class, "bL");
+//        backRight  = hardwareMap.get(DcMotor.class, "bR");
 
-        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
-
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+//        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+//        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
+//        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+//
+//        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // ---- Limelight init ----
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100);
-        boolean pipelineChanged = limelight.pipelineSwitch(0);
+        boolean pipelineChanged = limelight.pipelineSwitch(5);
 
         limelight.start();
 
@@ -124,7 +124,7 @@ public class LimelightPollenAuto_NoPedro extends LinearOpMode {
 
             telemetry.update();
         }
-        mecanumDrive(0, 0, 0);
+//        mecanumDrive(0, 0, 0);
         limelight.stop();
     }
 
