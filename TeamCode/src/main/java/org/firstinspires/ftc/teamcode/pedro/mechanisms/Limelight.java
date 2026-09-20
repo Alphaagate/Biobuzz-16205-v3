@@ -17,29 +17,10 @@ public class Limelight extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        /*
-         * Use the class field.
-         *
-         * Your old code did:
-         *
-         * Limelight3A limelight =
-         *     hardwareMap.get(...);
-         *
-         * which created a new local variable and
-         * shadowed the class field.
-         */
-        limelight =
-                hardwareMap.get(
-                        Limelight3A.class,
-                        "limelight"
-                );
-
-
-        // Pollen pipeline
-        limelight.pipelineSwitch(0);
-
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100);
+        limelight.pipelineSwitch(5); // pipeline 0 = pollen pipeline, per your other files
         limelight.start();
-
         waitForStart();
 
 

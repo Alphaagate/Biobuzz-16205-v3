@@ -25,6 +25,15 @@ public class LimelightPollenAuto extends OpMode {
     private int visionCycles = 0;
     private static final int MAX_VISION_CYCLES = 5;
 
+    // =========================================================================
+    // LIMELIGHT MOUNTING OFFSETS (Relative to Robot Center of Rotation)
+    // =========================================================================
+    // Distance forward (+) or backward (-) from robot center in inches
+    private static final double CAM_X_OFFSET = 0.0;
+
+    // Distance left (+) or right (-) from robot center in inches
+    private static final double CAM_Y_OFFSET = 5.0; // 5 inches to the LEFT
+
     private final PoseFactory p = PoseFactory.degrees();
 
     private final Pose startPose = p.of(22.55, 116.45, 180);
@@ -42,7 +51,7 @@ public class LimelightPollenAuto extends OpMode {
 
         // ONLY ONE pipeline should be active at a time.
         // 0 = your yellow Pollen pipeline.
-        limelight.pipelineSwitch(0);
+        limelight.pipelineSwitch(5);
         limelight.start();
 
         telemetry.addLine("Limelight + Pedro ready");
@@ -78,39 +87,59 @@ public class LimelightPollenAuto extends OpMode {
             return;
         }
 
-        /*
-         * NEW BEHAVIOR:
-         * Because we enabled "Smart Target Grouping" and set "Sort Mode" to Largest
-         * in the Limelight web interface, the Limelight camera natively handles clumps.
-         * Index 0 is guaranteed to be our best target (single ball or clump).
-         */
         ColorResult best = blobs.get(0);
-
         Pose current = follower.pose();
 
         /*
          * Limelight TX:
-         * positive = target is to the right.
+         * Positive = target is to the right of the camera center line.
+         * Negative = target is to the left of the camera center line.
          *
-         * We convert TX into radians and use the robot's
-         * current Pedro heading to calculate the field heading.
+         * Convert TX to standard angle relative to camera (CCW positive):
          */
-        double tx = Math.toRadians(best.getTargetXDegrees());
-        double targetHeading = current.heading() - tx;
+        double txRad = Math.toRadians(-best.getTargetXDegrees());
 
         /*
-         * For the first test, only drive 12 inches toward the target.
-         * Then we scan again.
+         * Distance drive assumption (12 inches for this test).
          */
         double driveDistance = 12.0;
 
-        double targetX = current.x() + driveDistance * Math.cos(targetHeading);
-        double targetY = current.y() + driveDistance * Math.sin(targetHeading);
+        /*
+         * 1. Calculate Target position relative to the CAMERA (in inches)
+         */
+        double targetX_cam = driveDistance * Math.cos(txRad);
+        double targetY_cam = driveDistance * Math.sin(txRad);
+
+        /*
+         * 2. Calculate Target position relative to the ROBOT CENTER (in inches)
+         * Account for the 5-inch left offset (CAM_Y_OFFSET = +5.0)
+         */
+        double targetX_robot = CAM_X_OFFSET + targetX_cam;
+        double targetY_robot = CAM_Y_OFFSET + targetY_cam;
+
+        /*
+         * 3. Transform Robot-Relative coordinates into FIELD coordinates
+         */
+        double currentHeading = current.heading(); // radians
+
+        double targetX_field = current.x()
+                + (targetX_robot * Math.cos(currentHeading) - targetY_robot * Math.sin(currentHeading));
+
+        double targetY_field = current.y()
+                + (targetX_robot * Math.sin(currentHeading) + targetY_robot * Math.cos(currentHeading));
+
+        /*
+         * 4. Compute target heading to aim the robot's center directly at the ball
+         */
+        double targetHeadingField = Math.atan2(
+                targetY_field - current.y(),
+                targetX_field - current.x()
+        );
 
         Pose target = p.of(
-                targetX,
-                targetY,
-                Math.toDegrees(targetHeading)
+                targetX_field,
+                targetY_field,
+                Math.toDegrees(targetHeadingField)
         );
 
         Path visionPath = line(current, target).constant(target);
@@ -124,24 +153,13 @@ public class LimelightPollenAuto extends OpMode {
 
     @Override
     public void loop() {
-        /*
-         * Always update Pedro first.
-         */
         follower.update();
 
-        /*
-         * If we finished the previous 12-inch path,
-         * allow another vision scan.
-         */
         if (driving && !follower.isBusy()) {
             driving = false;
             scanAndDrive();
         }
 
-        /*
-         * If the first scan did not get a result,
-         * try again on the next loop.
-         */
         if (!driving && visionCycles < MAX_VISION_CYCLES) {
             scanAndDrive();
         }
@@ -157,15 +175,11 @@ public class LimelightPollenAuto extends OpMode {
             telemetry.addData("Pollen blobs/groups seen", blobs.size());
 
             if (!blobs.isEmpty()) {
-
-                // Grab the pre-sorted best result from Limelight
                 ColorResult best = blobs.get(0);
-
                 telemetry.addData("Best TX", "%.2f", best.getTargetXDegrees());
                 telemetry.addData("Best TY", "%.2f", best.getTargetYDegrees());
                 telemetry.addData("Best Area", "%.2f%%", best.getTargetArea());
             }
-
         } else {
             telemetry.addData("Limelight", "No valid result");
         }
