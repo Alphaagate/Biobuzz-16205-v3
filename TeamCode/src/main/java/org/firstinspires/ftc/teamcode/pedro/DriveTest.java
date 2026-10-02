@@ -13,27 +13,17 @@ import com.pedropathing.paths.Path;
 import static com.pedropathing.api.Paths.line;
 import static com.pedropathing.api.Paths.curve;
 import static com.pedropathing.api.Paths.path;
-import static com.pedropathing.api.Paths.*;
-import com.pedropathing.paths.Path;
 
 import com.pedropathing.math.Pose;
 import com.pedropathing.api.PoseFactory;
 import com.pedropathing.ivy.Command;
-import com.pedropathing.ivy.Scheduler;
 import com.pedropathing.paths.interpolator.Interpolator;
-import com.pedropathing.paths.Path;
 
-import com.pedropathing.paths.interpolator.Interpolator;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
-import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-import com.pedropathing.follower.Follower;
-
-import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 public class DriveTest extends OpMode {
 
@@ -42,63 +32,50 @@ public class DriveTest extends OpMode {
     private int gateCycleNum = -1;
     private DcMotorEx outtake, outtake2;
 
-    private final PoseFactory p = PoseFactory.degrees();
+    private final PoseFactory poseFactory = PoseFactory.degrees();
     //    private final PoseFactory p = PoseFactory.degrees().mirrorX(70.75);
 //TODO: red and blue side switch, test which one is for red side and determine if you want to use control pad or make a separate opmode
-    private final Pose startPose = p.of(22.55, 116.45, 180);
+    private final Pose start = poseFactory.of(48, 8, 180);
+    private final Pose intake1Start = poseFactory.of(48, 8, 180);
+    private final Pose intake1 = poseFactory.of(8, 8, 180);
+    private final Pose shootFar = poseFactory.of(47.6008, 129.3427, 90); //to shoot far side and pickup balls from flower
+    private final Pose shoot1Control1 = poseFactory.of(37.3307, 103.2638, 0);
+    private final Pose intakeFlower = poseFactory.of(12, 48, 180);
+    private final Pose shootClose = poseFactory.of(48, 8, 90);
+    private final Pose limelightIntake = poseFactory.of(59.8554, 51.0381, 74.5991);
+    private final Pose park = poseFactory.of(9, 100, 90);
 
-    protected Pose shootingPose = p.of(53.423, 74.143, 0);
 
-    protected Pose middlePickupPose = p.of(13.990, 55, 180);
-    protected Pose middlePickupControlPoint2 = p.of(42, 57, 0);
-    protected Pose closePickupPose = p.of(20.590, 81.860, 180);
 
-    private double xOffset = -0.4;
-    private double yOffset = 1;
 
-    protected Pose[] gatePickupPoses = {
-            p.of(13.3 + xOffset, 56 + yOffset, 150),
-            p.of(13.3 + xOffset, 56.25 + yOffset, 150),
-            p.of(13.3 + xOffset, 56.5 + yOffset, 150),
-            p.of(13.3 + xOffset, 56.75 + yOffset, 150),
-            p.of(13.3 + xOffset, 57 + yOffset, 150),
-    };
+    protected Pose farPickupPose = poseFactory.of(11.590, 33.210, 180);
+    protected Pose farPickupControlPoint = poseFactory.of(45, 34, 0);
 
-    protected Pose farPickupPose = p.of(11.590, 33.210, 180);
-    protected Pose farPickupControlPoint = p.of(45, 34, 0);
+    protected Pose cornerPose = poseFactory.of(13.990, 17.860, 210);
+    protected Pose cornerBackupPose = poseFactory.of(11.690, 8.360, 180);
 
-    protected Pose cornerPose = p.of(13.990, 17.860, 210);
-    protected Pose cornerBackupPose = p.of(11.690, 8.360, 180);
+    protected Pose farShootingPose = poseFactory.of(51.247, 10.099, 0);
+    protected Pose parkPose = poseFactory.of(45.747, 15.099, 0);
 
-    protected Pose farShootingPose = p.of(51.247, 10.099, 0);
-    protected Pose parkPose = p.of(45.747, 15.099, 0);
-
-    protected Pose closeParkPose = p.of(56.990, 102.860, 180);
+    protected Pose closeParkPose = poseFactory.of(56.990, 102.860, 180);
     private Follower follower;
     private Limelight3A limelight;
 
     public double vel;
 
     protected Path shootPreloads;
-    protected Path pickupMiddle;
-    protected Path shootMiddle;
-    protected Path[] pickupGates;
-    protected Path[] shootGates;
-    protected Path shootGateAndPark;
-    protected Path pickupClose;
-    protected Path shootClose;
-    protected Path shootCloseAndPark;
-    protected Path pickupFar;
-    protected Path shootFar;
-    protected Path shootFarAndPark;
     protected Path pickupCorner;
-    protected Path backupCorner;
-    protected Path shootCorner;
+    protected Path shootFar;
+    protected Path intakeFlower;
+    protected Path shootFlower;
+    protected Path pickupLimelight;
+    protected Path shootLimelight;
     protected Path park;
-    protected Path shootCornerClose;
+    protected Path shootFar;
+
 
 //    private Path park() {
-//        return line(startPose, park).linear(startPose, park);
+//        return line(start, park).linear(start, park);
 //    }
 
     //TODO: see if this works
@@ -113,8 +90,6 @@ public class DriveTest extends OpMode {
                                 waitMs(500)
                         ),
                         runCycle(pickupMiddle, shootMiddle, shootTime, 700, 600),
-                        gateCycle(shootTime, 1000),
-                        gateCycle(shootTime, 1500),
                         runCycle(pickupClose, shootClose, shootTime, 900, 500),
                         gateCycle(shootTime, 1000),
                         gateCycle(shootTime, 1500),
@@ -236,7 +211,7 @@ public class DriveTest extends OpMode {
 
     private void generatePaths() {
 
-        shootPreloads = line(startPose, shootingPose)
+        shootPreloads = line(start, shoot)
                 .reverseTangent();
 
         pickupMiddle = curve(
@@ -322,7 +297,7 @@ public class DriveTest extends OpMode {
         Scheduler.reset();
 
         follower = Constants.create(hardwareMap);
-        follower.setPose(startPose);
+        follower.setPose(start);
 
         limelight = hardwareMap.get(
                 Limelight3A.class,

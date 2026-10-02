@@ -25,5 +25,9 @@ public class Tuning {
     public static Procedure pinpointTuner() {
         return new PinpointTuner();
     }
+    @Tuner
+    public static Procedure foresightTuner() {
+        return new ForesightTuner((hardwareMap) -> new PinpointLocalizer(hardwareMap, Constants.localizerConfig), (hardwareMap) -> new Mecanum(hardwareMap, Constants.drivetrainConfig));
+    }
     //TODO: check the above to see if you need to build after each tuner and also check the docs to see what outputs to paste
 }
