@@ -35,16 +35,16 @@ public class DriveTest extends OpMode {
     private final PoseFactory poseFactory = PoseFactory.degrees();
     //    private final PoseFactory p = PoseFactory.degrees().mirrorX(70.75);
 //TODO: red and blue side switch, test which one is for red side and determine if you want to use control pad or make a separate opmode
-    private final Pose startPose = poseFactory.of(48, 8, 180);
-//    private final Pose sPose = poseFactory.of(48, 8, 180);
-    private final Pose cornerPose = poseFactory.of(8, 8, 180);
-    private final Pose shootFarPose = poseFactory.of(47.6008, 129.3427, 90); //to shoot far side and pickup balls from flower
-    private final Pose shootFarControlPose = poseFactory.of(37.3307, 103.2638, 0);
+    private final Pose startPose = poseFactory.of(48, 8, 90);
+    private final Pose pickupCornerStartPose = poseFactory.of(48, 8, 90);
+    private final Pose pickupCornerPose = poseFactory.of(8, 8, 180);
+    private final Pose shootFarPose = poseFactory.of(47.6008, 129.3427, 90);
+    private final Pose shootFarControl1Pose = poseFactory.of(37.3307, 103.2638, 0);
     private final Pose intakeFlowerPose = poseFactory.of(12, 48, 180);
-    private final Pose shootClosePose = poseFactory.of(48, 8, 90);
-    private final Pose limelightIntakePose = poseFactory.of(59.8554, 51.0381, 74.5991);
-    private final Pose parkPose = poseFactory.of(9, 100, 90);
-
+    private final Pose shootFlowerPose = poseFactory.of(48, 8, 90);
+    private final Pose pickupLimelightPose = poseFactory.of(59.8554, 51.0381, 74.5991);
+    private final Pose shootLimelightPose = poseFactory.of(48.3992, 8.9979, 90);
+    private final Pose parkPose = poseFactory.of(9.0867, 101.5183, 90);
 
 
 
@@ -158,91 +158,48 @@ public class DriveTest extends OpMode {
 
     private void generatePaths() {
 
-        shootPreloads = line(startPose, startPose)
-                .reverseTangent();
-        pickupCorner = line(shootClosePose, cornerPose)
-                .constant(cornerPose);
-        shootFar = line(shootFarPose, shootFarPose)
-                .constant(shootingPose);
-        intakeFlower = line(intakeFlowerPose, shootClosePose)
-                .constant(flowerPose);
-        shootFlower = line(shootClosePose, shootClosePose)
-                .constant(shootingPose);
-        pickupLimelight = line(limelightIntakePose, shootClosePose)
-                .constant(limelightPose);
-        shootLimelight = line(limelightPose, shootingPose)
-                .constant(shootingPose);
-        park = line(parkPose, parkPose)
+        shootPreloads = line(startPose, pickupCornerStartPose)
+                .linear(startPose, pickupCornerStartPose);
+        pickupCorner = line(pickupCornerStartPose, pickupCornerPose)
+                .linear(pickupCornerStartPose, pickupCornerPose);
+        shootFar =  curve(pickupCornerPose, shootFarControl1Pose, shootFarPose)
+                .linear(pickupCornerPose, shootFarPose);
+        intakeFlower = line(shootFarPose, intakeFlowerPose)
+                .linear(shootFarPose, intakeFlowerPose);
+        shootFlower = line(shootFarPose, intakeFlowerPose)
+                .linear(shootFarPose, intakeFlowerPose);
+        pickupLimelight = line(shootFlowerPose, pickupLimelightPose)
                 .tangent();
+        shootLimelight = line(pickupLimelightPose, shootLimelightPose)
+                .constant(shootLimelightPose);
+        park = line(shootLimelightPose, parkPose)
+                .linear(shootLimelightPose, parkPose);
 
-        pickupMiddle = curve(
-                shootingPose,
-                middlePickupControlPoint2,
-                middlePickupPose
-        ).tangent();
+//        pickupGates = new Path[gatePickupPoses.length];
+//        shootGates = new Path[gatePickupPoses.length];
 
-        shootMiddle = line(middlePickupPose, shootingPose)
-                .reverseTangent();
+//        for (int i = 0; i < gatePickupPoses.length; i++) {
+//
+//            pickupGates[i] = line(shootingPose, gatePickupPoses[i])
+//                    .heading(
+//                            Interpolator.piecewise()
+//                                    .until(0.6, Interpolator.tangent)
+//                                    .until(
+//                                            1,
+//                                            Interpolator.constant(gatePickupPoses[i])
+//                                    )
+//                    );
+//
+//            shootGates[i] = line(gatePickupPoses[i], shootingPose)
+//                    .reverseTangent();
+//        }
+//
+//        shootGateAndPark = line(
+//                gatePickupPoses[gatePickupPoses.length - 1],
+//                closeParkPose
+//        ).reverseTangent();
 
-        pickupGates = new Path[gatePickupPoses.length];
-        shootGates = new Path[gatePickupPoses.length];
 
-        for (int i = 0; i < gatePickupPoses.length; i++) {
-
-            pickupGates[i] = line(shootingPose, gatePickupPoses[i])
-                    .heading(
-                            Interpolator.piecewise()
-                                    .until(0.6, Interpolator.tangent)
-                                    .until(
-                                            1,
-                                            Interpolator.constant(gatePickupPoses[i])
-                                    )
-                    );
-
-            shootGates[i] = line(gatePickupPoses[i], shootingPose)
-                    .reverseTangent();
-        }
-
-        shootGateAndPark = line(
-                gatePickupPoses[gatePickupPoses.length - 1],
-                closeParkPose
-        ).reverseTangent();
-
-        pickupClose = line(shootingPose, closePickupPose)
-                .constant(shootingPose);
-
-        shootClose = line(closePickupPose, shootingPose)
-                .constant(shootingPose);
-
-        shootCloseAndPark = line(closePickupPose, closeParkPose)
-                .constant(shootingPose);
-
-        pickupFar = curve(
-                shootingPose,
-                farPickupControlPoint,
-                farPickupPose
-        ).tangent();
-
-        shootFar = line(farPickupPose, shootingPose)
-                .constant(shootingPose);
-
-        shootFarAndPark = line(farPickupPose, closeParkPose)
-                .reverseTangent();
-
-        pickupCorner = line(shootingPose, cornerPose)
-                .constant(cornerPose);
-
-        backupCorner = line(cornerPose, cornerBackupPose)
-                .linear(cornerPose, cornerBackupPose);
-
-        shootCorner = line(cornerBackupPose, farShootingPose)
-                .constant(cornerBackupPose);
-
-        park = line(farShootingPose, parkPose)
-                .tangent();
-
-        shootCorner = line(cornerBackupPose, closeParkPose)
-                .constant(cornerBackupPose);
     }
 
 
@@ -258,7 +215,7 @@ public class DriveTest extends OpMode {
         Scheduler.reset();
 
         follower = Constants.create(hardwareMap);
-        follower.setPose(start);
+        follower.setPose(startPose);
 
         limelight = hardwareMap.get(
                 Limelight3A.class,
