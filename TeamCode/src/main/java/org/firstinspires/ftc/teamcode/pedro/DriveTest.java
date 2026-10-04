@@ -29,7 +29,6 @@ public class DriveTest extends OpMode {
 
 
     protected Command updateShooter;
-    private int gateCycleNum = -1;
     private DcMotorEx outtake, outtake2;
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
@@ -92,7 +91,7 @@ public class DriveTest extends OpMode {
 
 
 //    protected Command shootPreloads() {
-//        return sequential(startFlywheel(), follow(robot.getFollower(), shootPreloads));
+//        return sequential(startFlywheel(), follow(follower, shootPreloads));
 //    }
 
     protected Command runCycle(Path pickupPath, Path shootPath, double shootDelayMs,
@@ -209,8 +208,8 @@ public class DriveTest extends OpMode {
         outtake = hardwareMap.get(DcMotorEx.class, "o1");
         outtake.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        outtake2 = hardwareMap.get(DcMotorEx.class, "o2");
-        outtake2.setDirection(DcMotorSimple.Direction.FORWARD);
+//        outtake2 = hardwareMap.get(DcMotorEx.class, "o2");
+//        outtake2.setDirection(DcMotorSimple.Direction.FORWARD);
 
         Scheduler.reset();
 
@@ -258,7 +257,7 @@ public class DriveTest extends OpMode {
         double feedforward = 0.00036 * vel + 0.08;
 
         outtake.setPower(feedback + feedforward);
-        outtake2.setPower(feedback + feedforward);
+//        outtake2.setPower(feedback + feedforward);
 
         LLResult result = limelight.getLatestResult();
 
